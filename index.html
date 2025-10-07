@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Interativa de Ransomware</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+   
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa; /* Fundo Suave */
+            color: #333333; /* Texto Principal */
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0d47a1; /* Azul Primário */
+            border-bottom-color: #0d47a1; /* Azul Primário */
+        }
+        .kpi-card {
+            background-color: #ffffff; /* Fundo de Cards */
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+        }
+        .step-item, .vector-card, .tab-button {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .step-item.active {
+            background-color: #e3f2fd;
+            border-color: #0d47a1;
+            transform: scale(1.03);
+        }
+        .vector-card.active {
+            border-color: #c62828; /* Vermelho Alerta */
+            background-color: #ffebee;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 500px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 450px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-[#0d47a1]">Análise de Ransomware</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#inicio" class="nav-link px-3 py-2 rounded-md text-sm font-semibold">Início</a>
+                        <a href="#impacto" class="nav-link px-3 py-2 rounded-md text-sm font-semibold">Impacto</a>
+                        <a href="#vetores" class="nav-link px-3 py-2 rounded-md text-sm font-semibold">Vetores</a>
+                        <a href="#protecao" class="nav-link px-3 py-2 rounded-md text-sm font-semibold">Proteção</a>
+                        <a href="#resposta" class="nav-link px-3 py-2 rounded-md text-sm font-semibold">Resposta</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-[#0d47a1] hover:bg-gray-100 focus:outline-none">
+                        <span class="sr-only">Abrir menu</span>
+                        <div class="w-6 h-0.5 bg-gray-600 my-1"></div>
+                        <div class="w-6 h-0.5 bg-gray-600 my-1"></div>
+                        <div class="w-6 h-0.5 bg-gray-600 my-1"></div>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#inicio" class="nav-link block px-3 py-2 rounded-md text-base font-semibold">Início</a>
+                <a href="#impacto" class="nav-link block px-3 py-2 rounded-md text-base font-semibold">Impacto</a>
+                <a href="#vetores" class="nav-link block px-3 py-2 rounded-md text-base font-semibold">Vetores</a>
+                <a href="#protecao" class="nav-link block px-3 py-2 rounded-md text-base font-semibold">Proteção</a>
+                <a href="#resposta" class="nav-link block px-3 py-2 rounded-md text-base font-semibold">Resposta</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <section id="inicio" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#0d47a1] mb-4">O Que é Ransomware?</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    Ransomware é um tipo de software malicioso que sequestra os dados de um sistema, criptografando-os e exigindo o pagamento de um resgate (ransom) para restaurar o acesso. Esta seção explora a definição e o ciclo de vida de um ataque típico.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div id="lifecycle-details" class="bg-white p-6 rounded-lg shadow-sm min-h-[200px] flex items-center">
+                    <p class="text-gray-700"></p>
+                </div>
+                <div>
+                    <div id="lifecycle-steps" class="flex flex-col space-y-3">
+                        <div class="step-item p-4 rounded-lg border-2 border-gray-200" data-step="1">
+                            <h3 class="font-semibold text-lg">1. Infiltração</h3>
+                            <p class="text-sm text-gray-600">O malware ganha acesso ao sistema.</p>
+                        </div>
+                        <div class="step-item p-4 rounded-lg border-2 border-gray-200" data-step="2">
+                            <h3 class="font-semibold text-lg">2. Execução e Criptografia</h3>
+                            <p class="text-sm text-gray-600">O ransomware é ativado e começa a criptografar arquivos.</p>
+                        </div>
+                        <div class="step-item p-4 rounded-lg border-2 border-gray-200" data-step="3">
+                            <h3 class="font-semibold text-lg">3. Exigência de Resgate</h3>
+                            <p class="text-sm text-gray-600">Uma nota de resgate é exibida à vítima.</p>
+                        </div>
+                        <div class="step-item p-4 rounded-lg border-2 border-gray-200" data-step="4">
+                            <h3 class="font-semibold text-lg">4. Pagamento e Recuperação?</h3>
+                            <p class="text-sm text-gray-600">A vítima decide se paga, e o atacante pode (ou não) fornecer a chave.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="impacto" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#0d47a1] mb-4">O Impacto em Números</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    O ransomware causa prejuízos financeiros e operacionais significativos. Aqui, visualizamos dados sobre o custo médio dos ataques, o tempo de inatividade e os setores mais afetados, permitindo uma análise comparativa do impacto global.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="kpi-card">
+                    <h3 class="text-lg font-semibold text-gray-500 mb-2">Custo Médio do Resgate</h3>
+                    <p class="text-4xl font-bold text-[#0d47a1]"><span class="kpi-value" data-value="170000">0</span> USD</p>
+                </div>
+                <div class="kpi-card">
+                    <h3 class="text-lg font-semibold text-gray-500 mb-2">Tempo Médio de Inatividade</h3>
+                    <p class="text-4xl font-bold text-[#0d47a1]"><span class="kpi-value" data-value="21">0</span> dias</p>
+                </div>
+                <div class="kpi-card">
+                    <h3 class="text-lg font-semibold text-gray-500 mb-2">Empresas que Pagaram</h3>
+                    <p class="text-4xl font-bold text-[#0d47a1]"><span class="kpi-value" data-value="51">0</span>%</p>
+                </div>
+            </div>
+            <div class="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+                 <h3 class="text-xl font-bold text-center mb-4 text-[#333333]">Setores Mais Afetados</h3>
+                 <div class="chart-container">
+                    <canvas id="industryChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="vetores" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#0d47a1] mb-4">Vetores de Ataque Comuns</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600">
+                    Os atacantes usam diversas técnicas para se infiltrar nos sistemas. Esta seção interativa detalha os métodos mais comuns. Clique em cada vetor para entender como ele funciona e como os criminosos exploram vulnerabilidades.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1">
+                    <div id="vector-list" class="flex flex-col space-y-4">
+                        <div class="vector-card p-4 rounded-lg border-2 border-gray-200" data-vector="phishing">
+                            <h3 class="font-semibold text-lg">❌ E-mails de Phishing</h3>
+                            <p class="text-sm text-gray-600">A principal porta de entrada, enganando usuários.</p>
+                        </div>
+                         <div class="vector-card p-4 rounded-lg border-2 border-gray-200" data-vector="rdp">
+                            <h3 class="font-semibold text-lg">❌ Protocolo RDP Exposto</h3>
+                            <p class="text-sm text-gray-600">Acesso remoto inseguro explorado por atacantes.</p>
+                        </div>
+                         <div class="vector-card p-4 rounded-lg border-2 border-gray-200" data-vector="software">
+                            <h3 class="font-semibold text-lg">❌ Vulnerabilidades de Software</h3>
+                            <p class="text-sm text-gray-600">Sistemas desatualizados são um alvo fácil.</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="vector-details" class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm min-h-[250px] flex flex-col justify-center">
+                    <h3 id="vector-title" class="text-2xl font-bold mb-4 text-[#c62828]"></h3>
+                    <p id="vector-description" class="text-gray-700"></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="protecao" class="mb-16 md:mb-24 scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#0d47a1] mb-4">Como se Proteger</h2>
+                 <p class="max-w-3xl mx-auto text-lg text-gray-600">A prevenção é a estratégia mais eficaz contra o ransomware. A seguir, apresentamos uma lista de boas práticas essenciais que empresas e indivíduos podem adotar para fortalecer suas defesas e minimizar os riscos de um ataque.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2 text-[#2e7d32]">🛡️ 1. Backups Regulares</h3>
+                    <p>Mantenha cópias de segurança de dados importantes offline ou em nuvem segura. Teste a restauração periodicamente.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2 text-[#2e7d32]">🛡️ 2. Treinamento de Conscientização</h3>
+                    <p>Eduque os usuários a identificar e-mails de phishing, links suspeitos e práticas de segurança.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2 text-[#2e7d32]">🛡️ 3. Atualizações e Patches</h3>
+                    <p>Mantenha sistemas operacionais, softwares e aplicações sempre atualizados para corrigir vulnerabilidades.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2 text-[#2e7d32]">🛡️ 4. Use Antivírus e Firewall</h3>
+                    <p>Implemente soluções de segurança robustas e mantenha-as ativas e atualizadas.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2 text-[#2e7d32]">🛡️ 5. Mínimo Privilégio</h3>
+                    <p>Conceda aos usuários apenas o acesso necessário para realizar suas tarefas, limitando o dano potencial.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="font-semibold text-lg mb-2 text-[#2e7d32]">🛡️ 6. Autenticação Multifator (MFA)</h3>
+                    <p>Adicione uma camada extra de segurança para logins, especialmente em serviços críticos e acesso remoto.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="resposta" class="scroll-mt-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#0d47a1] mb-4">O Que Fazer em Caso de Ataque</h2>
+                 <p class="max-w-3xl mx-auto text-lg text-gray-600">Se o pior acontecer, agir de forma rápida e ordenada é crucial. Este guia apresenta os passos fundamentais a serem seguidos imediatamente após a descoberta de um ataque de ransomware para conter os danos e iniciar a recuperação.</p>
+            </div>
+             <div class="max-w-2xl mx-auto">
+                <div class="space-y-4">
+                    <div class="bg-white p-5 rounded-lg shadow-sm border-l-4 border-[#c62828]">
+                        <h3 class="font-semibold text-lg">Passo 1: Isolar o Sistema</h3>
+                        <p>Desconecte imediatamente o dispositivo infectado da rede (Wi-Fi e cabos) para impedir que o ransomware se espalhe para outros sistemas.</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-lg shadow-sm border-l-4 border-[#c62828]">
+                        <h3 class="font-semibold text-lg">Passo 2: Não Pague o Resgate</h3>
+                        <p>Pagar não garante a devolução dos dados e financia o cibercrime. Autoridades e especialistas em segurança recomendam não ceder à extorsão.</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-lg shadow-sm border-l-4 border-[#c62828]">
+                        <h3 class="font-semibold text-lg">Passo 3: Acionar o Plano de Resposta</h3>
+                        <p>Comunique a equipe de TI ou segurança da informação. Se for uma empresa, siga o plano de resposta a incidentes pré-definido.</p>
+                    </div>
+                     <div class="bg-white p-5 rounded-lg shadow-sm border-l-4 border-[#c62828]">
+                        <h3 class="font-semibold text-lg">Passo 4: Reportar às Autoridades</h3>
+                        <p>Informe a polícia ou agências especializadas em crimes cibernéticos. Isso ajuda nas investigações e estatísticas.</p>
+                    </div>
+                     <div class="bg-white p-5 rounded-lg shadow-sm border-l-4 border-[#c62828]">
+                        <h3 class="font-semibold text-lg">Passo 5: Restaurar de um Backup</h3>
+                        <p>Formate o sistema afetado e restaure os dados a partir de um backup limpo e confiável. Esta é a forma mais segura de recuperação.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-200 mt-16 md:mt-24">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-gray-600">
+            <p>&copy; 2025 Análise Interativa de Ransomware. Conteúdo para fins educacionais.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4
+            };
+
+            const sectionObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                sectionObserver.observe(section);
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (mobileMenu.classList.contains('hidden') === false) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
+            });
+
+            const lifecycleData = {
+                1: "A fase inicial onde o ransomware entra no sistema da vítima. Isso geralmente ocorre através de e-mails de phishing com anexos ou links maliciosos, exploração de vulnerabilidades em software desatualizado ou acesso a conexões de desktop remoto (RDP) com senhas fracas.",
+                2: "Uma vez dentro do sistema, o malware se comunica com o servidor do atacante, baixa a chave de criptografia e começa a varrer e a bloquear arquivos valiosos (documentos, fotos, bancos de dados). Os arquivos originais são substituídos ou excluídos.",
+                3: "Com os arquivos criptografados, o ransomware exibe uma nota na tela ou cria arquivos de texto nas pastas. A nota informa a vítima sobre o ataque, exige um pagamento (geralmente em criptomoeda) e define um prazo, ameaçando apagar os dados permanentemente.",
+                4: "A vítima enfrenta o dilema de pagar ou não. Pagar não garante que a chave de descriptografia será enviada. A melhor abordagem é restaurar os dados de um backup limpo. Se não houver backup, a recuperação pode ser impossível sem a ajuda de especialistas ou ferramentas de descriptografia, se disponíveis."
+            };
+
+            const lifecycleSteps = document.querySelectorAll('.step-item');
+            const detailsContainer = document.getElementById('lifecycle-details').querySelector('p');
+
+            function updateLifecycleDetails(step) {
+                lifecycleSteps.forEach(s => s.classList.remove('active'));
+                const activeStep = document.querySelector(`.step-item[data-step='${step}']`);
+                if(activeStep) activeStep.classList.add('active');
+                detailsContainer.textContent = lifecycleData[step];
+            }
+
+            lifecycleSteps.forEach(step => {
+                step.addEventListener('click', () => {
+                    updateLifecycleDetails(step.dataset.step);
+                });
+            });
+            updateLifecycleDetails('1');
+
+
+            const vectorData = {
+                phishing: {
+                    title: "E-mails de Phishing",
+                    description: "Este é o método mais prevalente. Os atacantes enviam e-mails que parecem legítimos, muitas vezes fingindo ser de bancos, serviços conhecidos ou contatos de trabalho. Eles contêm anexos maliciosos (como faturas falsas em .zip ou .doc) ou links que, quando clicados, baixam o ransomware no sistema da vítima. A engenharia social é usada para criar um senso de urgência ou curiosidade."
+                },
+                rdp: {
+                    title: "Protocolo de Desktop Remoto (RDP) Exposto",
+                    description: "Muitas empresas usam o RDP para permitir que funcionários acessem seus computadores de trabalho remotamente. Se as portas RDP estiverem abertas para a internet com senhas fracas ou sem autenticação multifator, os criminosos podem usar ataques de força bruta para adivinhar as credenciais, obter acesso direto à rede e implantar o ransomware manualmente."
+                },
+                software: {
+                    title: "Vulnerabilidades de Software",
+                    description: "Softwares, sistemas operacionais e plugins que não são atualizados regularmente podem ter falhas de segurança conhecidas. Os atacantes varrem a internet em busca de sistemas vulneráveis e usam 'exploits' para invadi-los sem qualquer interação do usuário. É por isso que aplicar patches de segurança assim que são lançados é fundamental."
+                }
+            };
+
+            const vectorCards = document.querySelectorAll('.vector-card');
+            const vectorTitle = document.getElementById('vector-title');
+            const vectorDescription = document.getElementById('vector-description');
+
+            function updateVectorDetails(vector) {
+                vectorCards.forEach(v => v.classList.remove('active'));
+                const activeVector = document.querySelector(`.vector-card[data-vector='${vector}']`);
+                if(activeVector) activeVector.classList.add('active');
+                
+                vectorTitle.textContent = vectorData[vector].title;
+                vectorDescription.textContent = vectorData[vector].description;
+            }
+
+            vectorCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    updateVectorDetails(card.dataset.vector);
+                });
+            });
+            updateVectorDetails('phishing');
+            
+            function animateValue(obj, start, end, duration) {
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString('pt-BR');
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
+            }
+
+            const kpiObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const kpiElements = entry.target.querySelectorAll('.kpi-value');
+                        kpiElements.forEach(el => {
+                            const value = parseInt(el.getAttribute('data-value'));
+                            animateValue(el, 0, value, 1500);
+                        });
+                        kpiObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            const kpiSection = document.getElementById('impacto');
+            if(kpiSection) kpiObserver.observe(kpiSection);
+
+            const ctx = document.getElementById('industryChart').getContext('2d');
+            const industryChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Saúde', 'Governo', 'Manufatura', 'Serviços Financeiros', 'Educação', 'Tecnologia'],
+                    datasets: [{
+                        label: '% de Ataques por Setor',
+                        data: [15, 13, 12, 10, 8, 7],
+                        backgroundColor: 'rgba(13, 71, 161, 0.7)',
+                        borderColor: 'rgba(13, 71, 161, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#333333',
+                                callback: function(value) {
+                                    return value + '%'
+                                }
+                            }
+                        },
+                        y: {
+                           ticks: {
+                                color: '#333333'
+                           } 
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
